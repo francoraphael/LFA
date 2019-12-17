@@ -37,6 +37,16 @@ int hasTransition(int state, int symbol, afd_t afd) {
   return afd.transitions[state][symbol];
 }
 
+int countStates(char *states) {
+  int count = 0;
+  while(*states != '\0'){
+    if(*states == ' ')
+      ++count;
+    ++states;
+  }
+  return ++count;
+}
+
 void removeBlankCharacters(char* s) {
   const char* d = s;
   do {
@@ -64,24 +74,13 @@ void readStates(int* state_section, char* states) {
   }
 }
 
-void readTransition(char* description, int* state, char* symbol, int* transition) {
+void readTransitions(char* description, int* state, char* symbol, int* transition) {
   char* token = strtok(description, " ");
   *state = (int)strtol(token, (char **)NULL, 10);
   token = strtok(NULL, " ");
   *symbol = *token;
   token = strtok(NULL, " ");
   *transition = (int)strtol(token, (char **)NULL, 10);
-}
-
-int countStates(char *states) {
-  int count = 0;
-  while(*states != '\0'){
-    if(*states == ' ')
-      ++count;
-    ++states;
-  }
-
-  return ++count;
 }
 
 void readWord(char* word) {
@@ -93,10 +92,21 @@ void readWord(char* word) {
 int main(int argc, char *argv[]) {
   int i, j;
   char line[BUFFER_SIZE], word[BUFFER_SIZE]; 
-  afd_t *afd;
-  FILE *fp = fopen(argv[1], "r");
-  afd = malloc(sizeof *afd);
+  afd_t *afd = malloc(sizeof *afd);
+  FILE *fp;
 
+  if(argc >= 2) {
+    if((fp = fopen(argv[1], "r")) == NULL){
+      printf("Falha ao abrir arquivo\n");
+      return 0;
+    }
+  } else {
+    printf("Arquivo nao informado\n");
+    return 0;
+  }
+
+  // Lê as quatro primeiras linhas do arquivo
+  // Alfabeto, Estados, Estados Finais e Estado Inicial
   for(i = 0; i < 4; i++) {
     readLine(fp, line);
     if(i == 0){
@@ -117,6 +127,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // Aloca a matriz dinamicamente
   afd->transitions = malloc(sizeof *afd->transitions * afd->states_quantity);
   for(i = 0; i < afd->states_quantity; i++) {
     afd->transitions[i] = malloc(sizeof **afd->transitions * afd->symbols_quantity);
@@ -125,10 +136,11 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // Lê as transições e armazena na matriz
   while(fgets(line, BUFFER_SIZE, fp) != NULL) {
     char symbol;
     int state, transition, symbol_position;
-    readTransition(line, &state, &symbol, &transition);
+    readTransitions(line, &state, &symbol, &transition);
     if((symbol_position = isSymbolValid(symbol, *afd)) == -1) {
       printf("Simbolo '%c' nao definido no alfabeto\n", symbol);
       return 0;
@@ -139,7 +151,7 @@ int main(int argc, char *argv[]) {
   readWord(word);
   while(strcmp(word, "-1") != 0) {
     afd->current_state = afd->i;
-    for(i=0; i<strlen(word); i++){
+    for(i=0; i<strlen(word); i++) {
       int symbol_position, target_state;
       if((symbol_position = isSymbolValid(word[i], *afd)) != -1) {
         if((target_state = hasTransition(afd->current_state, symbol_position, *afd)) != -1){
