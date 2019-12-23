@@ -16,8 +16,9 @@ typedef struct {
   int current_state;
 } afd_t;
 
+// Verifica se o simbolo informado pertence ao alfabeto do AFD
 int isSymbolValid(char symbol, afd_t afd) {
-  for(int i=0; i<afd.symbols_quantity; i++){
+  for(int i = 0; i < afd.symbols_quantity; i++){
     if(afd.alphabet[i] == symbol){
       return i;
     }
@@ -25,18 +26,22 @@ int isSymbolValid(char symbol, afd_t afd) {
   return -1;
 }
 
+// Verifica se o estado informado é um estado final do AFD
 int isFinalState(int state, afd_t afd) {
-  for(int i=0; i<afd.final_state_quantity; i++){
+  for(int i = 0; i < afd.final_state_quantity; i++){
     if(afd.F[i] == state)
       return afd.F[i];
   }
   return -1;
 }
 
+// Informa a transicao entre um estado e simbolo no AFD
 int hasTransition(int state, int symbol, afd_t afd) {
   return afd.transitions[state][symbol];
 }
 
+// Dado uma linha de estados no formato de entrada, verifica quantos
+// estados existem na referida linha
 int countStates(char *states) {
   int count = 0;
   while(*states != '\0'){
@@ -47,6 +52,7 @@ int countStates(char *states) {
   return ++count;
 }
 
+// Remove os caracteres em branco de uma linha
 void removeBlankCharacters(char* s) {
   const char* d = s;
   do {
@@ -55,14 +61,17 @@ void removeBlankCharacters(char* s) {
   } while (*s++ = *d++);
 }
 
+// Lê uma linha de um arquivo
 void readLine(FILE* fp, char* line) {
   fgets(line, BUFFER_SIZE, fp);
 }
 
-void readAlphabet(afd_t* afd, char* alphabet) {
+// Lê o alfabeto de uma linha para o AFD
+void readAlphabet(char* alphabet, afd_t* afd) {
   strcpy(afd->alphabet, alphabet);
 }
 
+// Lê os estados de uma linha para um dos conjuntos de estado
 void readStates(int* state_section, char* states) {
   char* token = strtok(states, " ");
   int i = 0;
@@ -74,6 +83,7 @@ void readStates(int* state_section, char* states) {
   }
 }
 
+// Lê uma transição e armazena nas variáveis de retorno
 void readTransitions(char* description, int* state, char* symbol, int* transition) {
   char* token = strtok(description, " ");
   *state = (int)strtol(token, (char **)NULL, 10);
@@ -83,6 +93,7 @@ void readTransitions(char* description, int* state, char* symbol, int* transitio
   *transition = (int)strtol(token, (char **)NULL, 10);
 }
 
+// Lê uma nova palavra a ser validada
 void readWord(char* word) {
   printf("Insira a palavra a ser testada (Digite -1 para sair): ");
   scanf("%[^\n]s", word);
@@ -95,7 +106,8 @@ int main(int argc, char *argv[]) {
   afd_t *afd = malloc(sizeof *afd);
   FILE *fp;
 
-  if(argc >= 2) {
+  // Verificações para abrir e ler arquivo
+  if(argc == 2) {
     if((fp = fopen(argv[1], "r")) == NULL){
       printf("Falha ao abrir arquivo\n");
       return 0;
@@ -113,7 +125,7 @@ int main(int argc, char *argv[]) {
       removeBlankCharacters(line);
       afd->symbols_quantity = strlen(line);
       afd->alphabet = malloc(sizeof *afd->alphabet * afd->symbols_quantity);
-      readAlphabet(afd, line);
+      readAlphabet(line, afd);
     } else if(i == 1) {
       afd->states_quantity = countStates(line);
       afd->E = malloc(sizeof *afd->E * afd->states_quantity);
@@ -131,7 +143,7 @@ int main(int argc, char *argv[]) {
   afd->transitions = malloc(sizeof *afd->transitions * afd->states_quantity);
   for(i = 0; i < afd->states_quantity; i++) {
     afd->transitions[i] = malloc(sizeof **afd->transitions * afd->symbols_quantity);
-    for(j=0; j<afd->symbols_quantity; j++) {
+    for(j=0; j < afd->symbols_quantity; j++) {
       afd->transitions[i][j] = -1;
     }
   }
@@ -151,7 +163,7 @@ int main(int argc, char *argv[]) {
   readWord(word);
   while(strcmp(word, "-1") != 0) {
     afd->current_state = afd->i;
-    for(i=0; i<strlen(word); i++) {
+    for(i = 0; i < strlen(word); i++) {
       int symbol_position, target_state;
       if((symbol_position = isSymbolValid(word[i], *afd)) != -1) {
         if((target_state = hasTransition(afd->current_state, symbol_position, *afd)) != -1){
@@ -159,8 +171,8 @@ int main(int argc, char *argv[]) {
           continue;
         }
       }
-        printf("Palavra '%s' nao reconhecida pela linguagem\n", word);
-        goto read_new;
+      printf("Palavra '%s' nao reconhecida pela linguagem\n", word);
+      goto read_new;
     }
 
     if(i == strlen(word) && isFinalState(afd->current_state, *afd) != -1)
