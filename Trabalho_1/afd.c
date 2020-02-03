@@ -16,6 +16,14 @@ typedef struct {
   int current_state;
 } afd_t;
 
+void isStateValid(int state, afd_t afd) {
+  for (int i = 0; i < afd.states_quantity; i++) {
+    if (afd.E[i] == state) return;
+  }
+  printf("Um estado nao definido foi encontrado... Saindo\n");
+  exit(0);
+}
+
 // Verifica se o simbolo informado pertence ao alfabeto do AFD
 int isSymbolValid(char symbol, afd_t afd) {
   for(int i = 0; i < afd.symbols_quantity; i++){
@@ -72,12 +80,16 @@ void readAlphabet(char* alphabet, afd_t* afd) {
 }
 
 // Lê os estados de uma linha para um dos conjuntos de estado
-void readStates(int* state_section, char* states) {
+void readStates(int* state_section, char* states, int is_reading_initial_state, afd_t afd) {
   char* token = strtok(states, " ");
-  int i = 0;
+  int i = 0, state;
 
   while(token != NULL) {
-    state_section[i] = strtol(token, (char **)NULL, 10);
+    state = strtol(token, (char **)NULL, 10);
+    if (!is_reading_initial_state) {
+      isStateValid(state, afd); 
+    }
+    state_section[i] = state;
     token = strtok(NULL, " ");
     ++i;
   }
@@ -101,7 +113,7 @@ void readWord(char* word) {
 }
 
 int main(int argc, char *argv[]) {
-  int i, j;
+  int i, j, auxiliar_state;
   char line[BUFFER_SIZE], word[BUFFER_SIZE]; 
   afd_t *afd = malloc(sizeof *afd);
   FILE *fp;
@@ -121,7 +133,7 @@ int main(int argc, char *argv[]) {
   // Alfabeto, Estados, Estados Finais e Estado Inicial
   for(i = 0; i < 4; i++) {
     readLine(fp, line);
-    if(i == 0){
+    if(i == 0) {
       removeBlankCharacters(line);
       afd->symbols_quantity = strlen(line);
       afd->alphabet = malloc(sizeof *afd->alphabet * afd->symbols_quantity);
@@ -129,13 +141,15 @@ int main(int argc, char *argv[]) {
     } else if(i == 1) {
       afd->states_quantity = countStates(line);
       afd->E = malloc(sizeof *afd->E * afd->states_quantity);
-      readStates(afd->E, line);
+      readStates(afd->E, line, 1, *afd);
     } else if(i == 2) {
       afd->final_state_quantity = countStates(line);
       afd->F = malloc(sizeof *afd->F * afd->final_state_quantity);
-      readStates(afd->F, line);
+      readStates(afd->F, line, 0, *afd);
     } else if(i == 3) {
-      afd->i = strtol(line, (char **)NULL, 10);
+      auxiliar_state = strtol(line, (char **)NULL, 10);
+      isStateValid(auxiliar_state, *afd);
+      afd->i = auxiliar_state;
     }
   }
 
@@ -156,7 +170,8 @@ int main(int argc, char *argv[]) {
     if((symbol_position = isSymbolValid(symbol, *afd)) == -1) {
       printf("Simbolo '%c' nao definido no alfabeto\n", symbol);
       return 0;
-     }
+    }
+    isStateValid(state, *afd);
     afd->transitions[state][symbol_position] = transition;
   }
 
